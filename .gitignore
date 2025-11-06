@@ -2,3 +2,11 @@ venv/
 mlruns/
 logs/
 MLOPS_PROJECT_1.egg-info/
+artifacts/
+*.pkl
+*.h5
+*.sav
+*.joblib
+*.csv
+*.zip
+*.gz
