@@ -45,7 +45,7 @@ pipeline{
 
                             docker build -t gcr.io/${GCP_PROJECT}/hotel-reservation-prediction:latest .
 
-                            docker push gcr.io/${GCP_PROJECT}/hotel-reservation-prediction:latest
+                            docker build --platform=linux/amd64 -t gcr.io/${GCP_PROJECT}/hotel-reservation-prediction:latest .
                         '''
                     }
                 }
