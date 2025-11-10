@@ -1,0 +1,105 @@
+/* --------- Global Styles ---------- */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                url("https://images.unsplash.com/photo-1551884170-09fb70a3a2d7") no-repeat center center/cover;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* --------- Card Container ---------- */
+.container {
+    background: #ffffffdd;
+    width: 420px;
+    padding: 30px 35px;
+    border-radius: 14px;
+    box-shadow: 0px 4px 25px rgba(0,0,0,0.25);
+    backdrop-filter: blur(6px);
+    animation: fadeIn 1.2s ease-in-out;
+}
+
+.container h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #7b4b00;
+    font-weight: 600;
+}
+
+/* ---------- Form Fields ---------- */
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #5b3500;
+}
+
+input[type="number"],
+select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #c99c63;
+    outline: none;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    background: #fffdf9;
+}
+
+input:focus,
+select:focus {
+    border-color: #b17320;
+    box-shadow: 0 0 8px rgba(177, 115, 32, 0.4);
+}
+
+/* ---------- Button Styling ---------- */
+button {
+    width: 100%;
+    padding: 12px;
+    background: #b8863b;
+    color: white;
+    font-size: 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+button:hover {
+    background: #8a5e22;
+    transform: scale(1.03);
+}
+
+/* ---------- Result Message ---------- */
+.result {
+    margin-top: 20px;
+    padding: 12px;
+    background: #fff6e4;
+    border-left: 4px solid #b8863b;
+    border-radius: 6px;
+    animation: slideUp 0.8s ease;
+}
+
+.result p {
+    margin: 0;
+    color: #5a3d00;
+    font-weight: 520;
+}
+
+/* ---------- Animations ---------- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
