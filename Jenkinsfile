@@ -31,25 +31,26 @@ pipeline{
                 }
             }
         }
-        stage('Building and pushing docker image to GCR') {
+        stage('Building and pushing docker image to Artifact Registry') {
             steps {
                 withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                     script{
-                        echo 'Building and pushing docker image to GCR............'
                         sh '''
                             export PATH=$PATH:${GCLOUD_PATH}
 
                             gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
                             gcloud config set project ${GCP_PROJECT}
-                            gcloud auth configure-docker --quiet
+                    
+                            gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
-                            docker build -t gcr.io/${GCP_PROJECT}/hotel-reservation-prediction:latest .
+                            docker build --platform=linux/amd64 -t us-central1-docker.pkg.dev/${GCP_PROJECT}/hotel-images/hotel-reservation-prediction:latest .
 
-                            docker build --platform=linux/amd64 -t gcr.io/${GCP_PROJECT}/hotel-reservation-prediction:latest .
+                            docker push us-central1-docker.pkg.dev/${GCP_PROJECT}/hotel-images/hotel-reservation-prediction:latest
                         '''
                     }
                 }
             }
         }
+
     }
 }
