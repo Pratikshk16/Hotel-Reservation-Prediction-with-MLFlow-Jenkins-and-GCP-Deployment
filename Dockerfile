@@ -27,6 +27,7 @@ RUN python pipeline/training_pipeline.py
 EXPOSE 8080
 
 # Command to run the app
-CMD ["gunicorn", "--bind", "0.0.0.0:${PORT}", "application:app"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT application:app"]
+
 
 
