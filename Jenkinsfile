@@ -44,6 +44,9 @@ pipeline{
                             gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
                             docker build --platform=linux/amd64 -t us-central1-docker.pkg.dev/${GCP_PROJECT}/hotel-images/hotel-reservation-prediction:latest .
+                            export DOCKER_CLIENT_TIMEOUT=300
+                            export COMPOSE_HTTP_TIMEOUT=300
+
 
                             docker push us-central1-docker.pkg.dev/${GCP_PROJECT}/hotel-images/hotel-reservation-prediction:latest
                         '''
