@@ -70,7 +70,7 @@ pipeline{
                             --platform managed \
                             --region us-central1 \
                             --allow-unauthenticated \
-                            --port 5000
+                            -- quiet
                         '''
                     }
                 }
