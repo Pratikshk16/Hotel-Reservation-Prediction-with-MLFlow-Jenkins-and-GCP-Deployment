@@ -34,19 +34,16 @@ pipeline{
         stage('Building and pushing docker image to Artifact Registry') {
             steps {
                 withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                    script{
+                    script {
                         sh '''
                             export PATH=$PATH:${GCLOUD_PATH}
 
                             gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
                             gcloud config set project ${GCP_PROJECT}
-                    
                             gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
-                            docker build --platform=linux/amd64 -t us-central1-docker.pkg.dev/${GCP_PROJECT}/hotel-images/hotel-reservation-prediction:latest .
-                            export DOCKER_CLIENT_TIMEOUT=300
-                            export COMPOSE_HTTP_TIMEOUT=300
-
+                            # Build image from the REAL project folder, not custom_jenkins
+                            docker build --platform=linux/amd64 -t us-central1-docker.pkg.dev/${GCP_PROJECT}/hotel-images/hotel-reservation-prediction:latest MLOPS\\ PROJECT-1
 
                             docker push us-central1-docker.pkg.dev/${GCP_PROJECT}/hotel-images/hotel-reservation-prediction:latest
                         '''
@@ -54,6 +51,7 @@ pipeline{
                 }
             }
         }
+
 
         stage('Deploy to google cloud run') {
             steps {
@@ -64,13 +62,15 @@ pipeline{
 
                             gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
                             gcloud config set project ${GCP_PROJECT}
-                    
+        
                             gcloud run deploy hotel-reservation-prediction \
-                            --image us-central1-docker.pkg.dev/${GCP_PROJECT}/hotel-images/hotel-reservation-prediction:latest \
+                            --image us-central1-docker.pkg.dev/mlops-new-475914/hotel-images/hotel-reservation-prediction:latest \
                             --platform managed \
                             --region us-central1 \
                             --allow-unauthenticated \
+                            --port 8080 \
                             --quiet
+
                         '''
                     }
                 }
