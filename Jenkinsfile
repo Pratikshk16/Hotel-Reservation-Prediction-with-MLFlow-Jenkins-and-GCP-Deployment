@@ -52,5 +52,27 @@ pipeline{
             }
         }
 
+        stage('Deploy to google cloud run') {
+            steps {
+                withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                    script{
+                        sh '''
+                            export PATH=$PATH:${GCLOUD_PATH}
+
+                            gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+                            gcloud config set project ${GCP_PROJECT}
+                    
+                            gcloud run deploy hotel-reservation-prediction \
+                            --image us-central1-docker.pkg.dev/${GCP_PROJECT}/hotel-images/hotel-reservation-prediction:latest \
+                            --platform managed \
+                            --region us-central1 \
+                            --allow-unauthenticated \
+                            --port 5000
+                        '''
+                    }
+                }
+            }
+        }
+
     }
 }
