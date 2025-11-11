@@ -2,6 +2,7 @@ import joblib
 import numpy as np
 from config.paths_config import MODEL_OUTPUT_PATH
 from flask import Flask, render_template, request
+import os
 
 app = Flask(__name__)
 
@@ -39,5 +40,5 @@ def index():
 
         
 if __name__ == "__main__":
-    app.run(host = '0.0.0.0' , port = 8080, debug= True)
-
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)

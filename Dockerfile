@@ -27,5 +27,6 @@ RUN python pipeline/training_pipeline.py
 EXPOSE 5000
 
 # Command to run the app
-CMD ["python", "application.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:${PORT}", "application:app"]
+
 
