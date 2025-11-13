@@ -19,18 +19,26 @@ pipeline{
         }
         stage('Setting up Virtual Environment and Installing Dependencies') {
             steps {
-                script{
+                script {
                     echo 'Setting up Virtual Environment and Installing Dependencies'
                     sh '''
-                        python3 -m venv ${VENV_DIR}
-                        . ${VENV_DIR}/bin/activate
+                    apt-get update && apt-get install -y python3 python3-venv python3-pip
 
-                        pip install --upgrade pip
-                        pip install -e .
-                        '''
+                    # Verify installation
+                    python3 --version
+                    pip3 --version
+
+                    # Create venv and install dependencies
+                    python3 -m venv ${VENV_DIR}
+                    . ${VENV_DIR}/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                    '''
                 }
             }
         }
+
+
         stage('Building and pushing docker image to Artifact Registry') {
             steps {
                 withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
