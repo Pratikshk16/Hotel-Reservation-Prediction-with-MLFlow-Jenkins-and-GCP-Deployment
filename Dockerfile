@@ -1,11 +1,11 @@
-# Use a lightweight Python image
-FROM python:slim
+# Use a stable lightweight Python base image
+FROM python:3.9-slim
 
-# Set environment variables to prevent Python from writing .pyc files & Ensure Python output is not buffered
+# Prevent Python from writing .pyc files and buffer stdout/stderr
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Set the working directory
+# Set working directory
 WORKDIR /app
 
 # Install system dependencies required by LightGBM
@@ -14,21 +14,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the application code
+# Copy dependency file first (for better caching)
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application
 COPY . .
 
-# Install the package in editable mode
-RUN pip install --no-cache-dir -e .
+# Copy pre-trained model (if stored separately)
+# COPY models/ models/
 
-# Train the model before running the application
-RUN python pipeline/training_pipeline.py
-
-# Expose the port that Flask will run on
+# Expose Flask/Gunicorn port
 EXPOSE 8080
 
-# Command to run the app
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT application:app"]
-
-
-
-
+# Use Gunicorn to serve Flask app
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "application:app"]
