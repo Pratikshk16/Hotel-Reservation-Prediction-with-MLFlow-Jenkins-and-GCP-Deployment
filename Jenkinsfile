@@ -1,20 +1,30 @@
 pipeline {
-    agent {
-        docker {
-            image 'google/cloud-sdk:slim'
-            args '-u root:root'
-        }
-    }
+    agent any
 
     environment {
         GCP_PROJECT = 'mlops-new-475914'
-        GCLOUD_PATH = '/var/jenkins_home/google-cloud-sdk/bin'
         IMAGE_NAME = 'hotel-reservation-prediction'
         REGION = 'us-central1'
         REPO_PATH = 'hotel-images'
     }
 
     stages {
+        stage('Setup Google Cloud SDK') {
+            steps {
+                script {
+                    echo "Installing Google Cloud SDK..."
+                    sh '''
+                    apt-get update && apt-get install -y curl apt-transport-https ca-certificates gnupg
+                    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
+                        | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+                    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+                    apt-get update && apt-get install -y google-cloud-sdk
+                    gcloud version
+                    '''
+                }
+            }
+        }
+
         stage('Clone Repo') {
             steps {
                 script {
@@ -33,7 +43,6 @@ pipeline {
                     script {
                         echo "Building Docker image and pushing to Artifact Registry..."
                         sh '''
-                            export PATH=$PATH:${GCLOUD_PATH}
                             gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
                             gcloud config set project ${GCP_PROJECT}
                             gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
@@ -54,7 +63,6 @@ pipeline {
                     script {
                         echo "Deploying latest image to Cloud Run..."
                         sh '''
-                            export PATH=$PATH:${GCLOUD_PATH}
                             gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
                             gcloud config set project ${GCP_PROJECT}
                             
