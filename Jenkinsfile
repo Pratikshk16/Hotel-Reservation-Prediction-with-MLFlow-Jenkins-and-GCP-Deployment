@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'google/cloud-sdk:slim'   // comes with gcloud preinstalled
-            args '-u root:root'             // gives root permissions inside container
-        }
-    }
+    agent any
 
     environment {
         GCP_PROJECT = 'mlops-new-475914'
