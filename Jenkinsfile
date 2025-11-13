@@ -1,73 +1,81 @@
-pipeline {
+pipeline{
     agent any
 
     environment {
+        VENV_DIR = 'venv'
         GCP_PROJECT = 'mlops-new-475914'
-        IMAGE_NAME = 'hotel-reservation-prediction'
-        REGION = 'us-central1'
-        REPO_PATH = 'hotel-images'
+        GCLOUD_PATH = '/var/jenkins_home/google-cloud-sdk/bin'
     }
-
+    
     stages {
-
-        stage('Install Google Cloud SDK') {
+        stage('Cloning Github Repo to Jenkins') {
             steps {
-                sh '''
-                    echo "Installing Google Cloud SDK..."
-                    apt-get update && apt-get install -y curl apt-transport-https ca-certificates gnupg
-                    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-                    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-                    apt-get update && apt-get install -y google-cloud-cli
-                    gcloud version
-                '''
+                script{
+                    echo 'Cloning...'
+                    checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[credentialsId: 'github_token', url: 'https://github.com/Pratikshk16/Hotel-Reservation-Prediction-with-MLFlow-Jenkins-and-GCP-Deployment.git']])
+
+                }
             }
         }
-
-        stage('Clone Repo') {
+        stage('Setting up Virtual Environment and Installing Dependencies') {
             steps {
-                checkout scmGit(branches: [[name: '*/main']],
-                                userRemoteConfigs: [[credentialsId: 'github_token',
-                                url: 'https://github.com/Pratikshk16/Hotel-Reservation-Prediction-with-MLFlow-Jenkins-and-GCP-Deployment.git']])
+                script{
+                    echo 'Setting up Virtual Environment and Installing Dependencies'
+                    sh '''
+                        python3 -m venv ${VENV_DIR}
+                        . ${VENV_DIR}/bin/activate
+
+                        pip install --upgrade pip
+                        pip install -e .
+                        '''
+                }
             }
         }
-
-        stage('Build & Push Docker Image') {
+        stage('Building and pushing docker image to Artifact Registry') {
             steps {
                 withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                    sh '''
-                        echo "Building Docker image..."
-                        gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
-                        gcloud config set project ${GCP_PROJECT}
-                        gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+                    script {
+                        sh '''
+                            export PATH=$PATH:${GCLOUD_PATH}
 
-                        IMAGE_TAG=$(date +%Y%m%d%H%M%S)
-                        docker build --platform=linux/amd64 -t ${REGION}-docker.pkg.dev/${GCP_PROJECT}/${REPO_PATH}/${IMAGE_NAME}:${IMAGE_TAG} .
-                        docker push ${REGION}-docker.pkg.dev/${GCP_PROJECT}/${REPO_PATH}/${IMAGE_NAME}:${IMAGE_TAG}
-                        echo $IMAGE_TAG > image_tag.txt
-                    '''
+                            gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+                            gcloud config set project ${GCP_PROJECT}
+                            gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+                            # Build image from the REAL project folder, not custom_jenkins
+                            docker build --platform=linux/amd64 -t us-central1-docker.pkg.dev/${GCP_PROJECT}/hotel-images/hotel-reservation-prediction:latest MLOPS\\ PROJECT-1
+
+                            docker push us-central1-docker.pkg.dev/${GCP_PROJECT}/hotel-images/hotel-reservation-prediction:latest
+                        '''
+                    }
                 }
             }
         }
 
-        stage('Deploy to Cloud Run') {
+
+        stage('Deploy to google cloud run') {
             steps {
                 withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                    sh '''
-                        echo "Deploying to Cloud Run..."
-                        gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
-                        gcloud config set project ${GCP_PROJECT}
+                    script{
+                        sh '''
+                            export PATH=$PATH:${GCLOUD_PATH}
 
-                        IMAGE_TAG=$(cat image_tag.txt)
-                        gcloud run deploy ${IMAGE_NAME} \
-                            --image ${REGION}-docker.pkg.dev/${GCP_PROJECT}/${REPO_PATH}/${IMAGE_NAME}:${IMAGE_TAG} \
+                            gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+                            gcloud config set project ${GCP_PROJECT}
+        
+                            gcloud run deploy hotel-reservation-prediction \
+                            --image us-central1-docker.pkg.dev/mlops-new-475914/hotel-images/hotel-reservation-prediction:latest \
                             --platform managed \
-                            --region ${REGION} \
+                            --region us-central1 \
                             --allow-unauthenticated \
                             --port 8080 \
                             --quiet
-                    '''
+
+                        '''
+                    }
                 }
             }
         }
+
     }
 }
