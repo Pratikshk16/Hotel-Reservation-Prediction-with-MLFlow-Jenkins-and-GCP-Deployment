@@ -9,3 +9,4 @@ joblib
 mlflow
 flask
 gunicorn
+shap==0.46.0
