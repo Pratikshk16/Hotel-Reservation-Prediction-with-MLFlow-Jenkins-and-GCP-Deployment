@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'google/cloud-sdk:slim'
+            args '-u root:root'
+        }
+    }
 
     environment {
         GCP_PROJECT = 'mlops-new-475914'
