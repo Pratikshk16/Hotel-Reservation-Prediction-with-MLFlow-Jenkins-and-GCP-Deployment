@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'google/cloud-sdk:slim'   // comes with gcloud preinstalled
+            args '-u root:root'             // gives root permissions inside container
+        }
+    }
 
     environment {
         GCP_PROJECT = 'mlops-new-475914'
@@ -9,50 +14,29 @@ pipeline {
     }
 
     stages {
-        stage('Setup Google Cloud SDK') {
-            steps {
-                script {
-                    echo "Installing Google Cloud SDK..."
-                    sh '''
-                    apt-get update && apt-get install -y curl apt-transport-https ca-certificates gnupg
-                    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
-                        | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-                    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-                    apt-get update && apt-get install -y google-cloud-sdk
-                    gcloud version
-                    '''
-                }
-            }
-        }
 
         stage('Clone Repo') {
             steps {
-                script {
-                    echo 'Cloning repository...'
-                    checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[
-                        credentialsId: 'github_token',
-                        url: 'https://github.com/Pratikshk16/Hotel-Reservation-Prediction-with-MLFlow-Jenkins-and-GCP-Deployment.git'
-                    ]])
-                }
+                checkout scmGit(branches: [[name: '*/main']],
+                                userRemoteConfigs: [[credentialsId: 'github_token',
+                                url: 'https://github.com/Pratikshk16/Hotel-Reservation-Prediction-with-MLFlow-Jenkins-and-GCP-Deployment.git']])
             }
         }
 
         stage('Build & Push Docker Image') {
             steps {
                 withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                    script {
-                        echo "Building Docker image and pushing to Artifact Registry..."
-                        sh '''
-                            gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
-                            gcloud config set project ${GCP_PROJECT}
-                            gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+                    sh '''
+                        echo "Building Docker image..."
+                        gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+                        gcloud config set project ${GCP_PROJECT}
+                        gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
 
-                            IMAGE_TAG=$(date +%Y%m%d%H%M%S)
-                            docker build --platform=linux/amd64 -t ${REGION}-docker.pkg.dev/${GCP_PROJECT}/${REPO_PATH}/${IMAGE_NAME}:${IMAGE_TAG} .
-                            docker push ${REGION}-docker.pkg.dev/${GCP_PROJECT}/${REPO_PATH}/${IMAGE_NAME}:${IMAGE_TAG}
-                            echo $IMAGE_TAG > image_tag.txt
-                        '''
-                    }
+                        IMAGE_TAG=$(date +%Y%m%d%H%M%S)
+                        docker build --platform=linux/amd64 -t ${REGION}-docker.pkg.dev/${GCP_PROJECT}/${REPO_PATH}/${IMAGE_NAME}:${IMAGE_TAG} .
+                        docker push ${REGION}-docker.pkg.dev/${GCP_PROJECT}/${REPO_PATH}/${IMAGE_NAME}:${IMAGE_TAG}
+                        echo $IMAGE_TAG > image_tag.txt
+                    '''
                 }
             }
         }
@@ -60,22 +44,20 @@ pipeline {
         stage('Deploy to Cloud Run') {
             steps {
                 withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                    script {
-                        echo "Deploying latest image to Cloud Run..."
-                        sh '''
-                            gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
-                            gcloud config set project ${GCP_PROJECT}
-                            
-                            IMAGE_TAG=$(cat image_tag.txt)
-                            gcloud run deploy ${IMAGE_NAME} \
-                                --image ${REGION}-docker.pkg.dev/${GCP_PROJECT}/${REPO_PATH}/${IMAGE_NAME}:${IMAGE_TAG} \
-                                --platform managed \
-                                --region ${REGION} \
-                                --allow-unauthenticated \
-                                --port 8080 \
-                                --quiet
-                        '''
-                    }
+                    sh '''
+                        echo "Deploying to Cloud Run..."
+                        gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+                        gcloud config set project ${GCP_PROJECT}
+
+                        IMAGE_TAG=$(cat image_tag.txt)
+                        gcloud run deploy ${IMAGE_NAME} \
+                            --image ${REGION}-docker.pkg.dev/${GCP_PROJECT}/${REPO_PATH}/${IMAGE_NAME}:${IMAGE_TAG} \
+                            --platform managed \
+                            --region ${REGION} \
+                            --allow-unauthenticated \
+                            --port 8080 \
+                            --quiet
+                    '''
                 }
             }
         }
